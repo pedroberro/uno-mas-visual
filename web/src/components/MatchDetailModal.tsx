@@ -1,15 +1,13 @@
 import { useState, type FormEvent } from 'react';
 import {
-  DEPORTES,
   capitalizar,
   etiquetaNivel,
   formatearFecha,
   formatearFechaHora,
-  iniciales,
-  nombreCompleto,
-  obtenerUsuario,
-} from '../data';
-import type { AccionPartido, Partido, Usuario } from '../types';
+  lugarDisponible,
+  nombreDeporte,
+} from '../formato';
+import type { AccionPartido, Catalogo, Partido, Usuario } from '../types';
 import {
   IconBan,
   IconCalendar,
@@ -26,6 +24,7 @@ import { Modal } from './Modal';
 interface Props {
   partido: Partido;
   usuario: Usuario;
+  catalogo: Catalogo;
   onCerrar: () => void;
   onUnirse: () => void;
   onAccion: (accion: AccionPartido) => void;
@@ -37,20 +36,20 @@ const PASOS = ['Necesitamos jugadores', 'Armado', 'Confirmado', 'En juego', 'Fin
 export function MatchDetailModal({
   partido,
   usuario,
+  catalogo,
   onCerrar,
   onUnirse,
   onAccion,
   onComentar,
 }: Props) {
   const [comentario, setComentario] = useState('');
-  const deporte = DEPORTES[partido.deporte];
   const ocupados = partido.jugadores.length;
   const esCreador = partido.creadorId === usuario.id;
-  const esJugador = partido.jugadores.includes(usuario.id);
+  const esJugador = partido.jugadores.some((jugador) => jugador.id === usuario.id);
   const participa = esCreador || esJugador;
 
   const puedeUnirse =
-    partido.estado === 'Necesitamos jugadores' && !esJugador && ocupados < deporte.jugadores;
+    partido.estado === 'Necesitamos jugadores' && !esJugador && lugarDisponible(partido);
   const puedeConfirmar = esCreador && partido.estado === 'Armado';
   const puedeComenzar = esCreador && partido.estado === 'Confirmado';
   const puedeFinalizar = esCreador && partido.estado === 'En juego';
@@ -61,6 +60,8 @@ export function MatchDetailModal({
       partido.estado === 'Confirmado');
 
   const indicePaso = PASOS.findIndex((paso) => paso === partido.estado);
+  const sinAcciones =
+    !puedeUnirse && !puedeConfirmar && !puedeComenzar && !puedeFinalizar && !puedeCancelar;
 
   const enviarComentario = (evento: FormEvent<HTMLFormElement>) => {
     evento.preventDefault();
@@ -72,7 +73,7 @@ export function MatchDetailModal({
 
   return (
     <Modal
-      titulo={`${deporte.nombre} · ${capitalizar(partido.zona.barrio)}`}
+      titulo={`${nombreDeporte(catalogo, partido.deporte)} · ${capitalizar(partido.zona.barrio)}`}
       subtitulo={`${formatearFecha(partido.fecha)} a las ${partido.horario}`}
       onCerrar={onCerrar}
       amplio
@@ -125,7 +126,8 @@ export function MatchDetailModal({
             <IconUsers width={16} height={16} /> Jugadores
           </dt>
           <dd>
-            {ocupados}/{deporte.jugadores} · nivel {etiquetaNivel(partido.nivelRequerido)}
+            {ocupados}/{partido.jugadoresRequeridos} · nivel{' '}
+            {etiquetaNivel(partido.nivelRequerido)}
           </dd>
         </div>
       </dl>
@@ -136,21 +138,20 @@ export function MatchDetailModal({
           <p className="texto-suave">Todavía no hay jugadores anotados.</p>
         ) : (
           <ul className="jugadores-lista">
-            {partido.jugadores.map((id) => {
-              const jugador = obtenerUsuario(id);
-              if (!jugador) return null;
-              return (
-                <li key={id}>
-                  <span className="avatar avatar--chico">{iniciales(jugador)}</span>
-                  <span className="jugadores-lista__nombre">
-                    {nombreCompleto(jugador)}
-                    {jugador.id === partido.creadorId && <em> · creador</em>}
-                  </span>
-                  <span className="jugadores-lista__nivel">{etiquetaNivel(jugador.nivel)}</span>
-                </li>
-              );
-            })}
+            {partido.jugadores.map((jugador) => (
+              <li key={jugador.id}>
+                <span className="avatar avatar--chico">{jugador.iniciales}</span>
+                <span className="jugadores-lista__nombre">
+                  {jugador.nombreCompleto}
+                  {jugador.creador && <em> · creador</em>}
+                </span>
+                <span className="jugadores-lista__nivel">{etiquetaNivel(jugador.nivel)}</span>
+              </li>
+            ))}
           </ul>
+        )}
+        {partido.estrategia && (
+          <p className="texto-suave">Emparejamiento: {partido.estrategia}</p>
         )}
       </section>
 
@@ -182,7 +183,7 @@ export function MatchDetailModal({
               <IconBan width={17} height={17} /> Cancelar partido
             </button>
           )}
-          {!puedeUnirse && !puedeConfirmar && !puedeComenzar && !puedeFinalizar && !puedeCancelar && (
+          {sinAcciones && (
             <p className="texto-suave">
               {participa
                 ? 'No hay acciones disponibles para el estado actual del partido.'
@@ -198,8 +199,8 @@ export function MatchDetailModal({
           <p className="texto-suave">Todavía no hay comentarios.</p>
         ) : (
           <ul className="comentarios">
-            {partido.comentarios.map((item) => (
-              <li key={item.id} className="comentario">
+            {partido.comentarios.map((item, indice) => (
+              <li key={`${item.fecha}-${indice}`} className="comentario">
                 <header>
                   <strong>{item.autor}</strong>
                   <time dateTime={item.fecha}>{formatearFechaHora(item.fecha)}</time>
@@ -219,7 +220,11 @@ export function MatchDetailModal({
               rows={2}
               maxLength={280}
             />
-            <button type="submit" className="btn btn--primario btn--chico" disabled={!comentario.trim()}>
+            <button
+              type="submit"
+              className="btn btn--primario btn--chico"
+              disabled={!comentario.trim()}
+            >
               <IconSend width={16} height={16} /> Comentar
             </button>
           </form>

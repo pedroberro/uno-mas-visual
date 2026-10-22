@@ -150,3 +150,16 @@ export const IconRefresh = (props: Props) => (
     <path d="M20 4.5V10h-5.5" />
   </Base>
 );
+
+export const IconSol = (props: Props) => (
+  <Base {...props}>
+    <circle cx="12" cy="12" r="4" />
+    <path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M18.7 5.3l-1.5 1.5M6.8 17.2l-1.5 1.5" />
+  </Base>
+);
+
+export const IconLuna = (props: Props) => (
+  <Base {...props}>
+    <path d="M20 14.4A8.5 8.5 0 0 1 9.6 4a8.5 8.5 0 1 0 10.4 10.4Z" />
+  </Base>
+);

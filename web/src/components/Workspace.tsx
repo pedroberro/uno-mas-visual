@@ -1,18 +1,11 @@
 import { useState } from 'react';
-import {
-  BARRIOS,
-  DEPORTES,
-  DEPORTES_LISTA,
-  capitalizar,
-  etiquetaNivel,
-  iniciales,
-  lugarDisponible,
-  nombreCompleto,
-} from '../data';
-import type { AccionPartido, DeporteId, NuevoPartido, Partido, Usuario } from '../types';
+import { capitalizar, etiquetaNivel, lugarDisponible, nombreDeporte } from '../formato';
+import type { Tema } from '../tema';
+import type { AccionPartido, Catalogo, NuevoPartido, Partido, Usuario } from '../types';
 import { CreateMatchModal } from './CreateMatchModal';
 import { MatchCard } from './MatchCard';
 import { MatchDetailModal } from './MatchDetailModal';
+import { ThemeToggle } from './ThemeToggle';
 import {
   IconLogout,
   IconPlus,
@@ -23,14 +16,17 @@ import {
   IconUsers,
 } from './icons';
 
-type Vista = 'descubrir' | 'mis' | 'todos';
+type Vista = 'descubrir' | 'mis' | 'invitaciones' | 'todos';
 
 interface Props {
   usuario: Usuario;
+  catalogo: Catalogo;
   partidos: Partido[];
+  tema: Tema;
+  onAlternarTema: () => void;
   onSalir: () => void;
   onUnirse: (partido: Partido) => void;
-  onCrear: (nuevo: NuevoPartido) => void;
+  onCrear: (nuevo: NuevoPartido) => Promise<boolean>;
   onAccion: (partido: Partido, accion: AccionPartido) => void;
   onComentar: (partidoId: string, contenido: string) => void;
   onReiniciar: () => void;
@@ -39,12 +35,16 @@ interface Props {
 const ETIQUETAS_VISTA: Record<Vista, string> = {
   descubrir: 'Descubrir',
   mis: 'Mis partidos',
+  invitaciones: 'Invitaciones',
   todos: 'Todos',
 };
 
 export function Workspace({
   usuario,
+  catalogo,
   partidos,
+  tema,
+  onAlternarTema,
   onSalir,
   onUnirse,
   onCrear,
@@ -53,27 +53,27 @@ export function Workspace({
   onReiniciar,
 }: Props) {
   const [vista, setVista] = useState<Vista>('descubrir');
-  const [deporteFiltro, setDeporteFiltro] = useState<'todos' | DeporteId>('todos');
+  const [deporteFiltro, setDeporteFiltro] = useState('todos');
   const [barrioFiltro, setBarrioFiltro] = useState('todos');
   const [busqueda, setBusqueda] = useState('');
   const [partidoAbierto, setPartidoAbierto] = useState<string | null>(null);
   const [creando, setCreando] = useState(false);
 
   const participantes = (partido: Partido) =>
-    partido.jugadores.includes(usuario.id) || partido.creadorId === usuario.id;
+    partido.creadorId === usuario.id || partido.jugadores.some((j) => j.id === usuario.id);
 
   const disponibles = partidos.filter(
-    (partido) =>
-      (partido.estado === 'Necesitamos jugadores' || partido.estado === 'Armado') &&
-      lugarDisponible(partido),
+    (partido) => partido.estado === 'Necesitamos jugadores' && lugarDisponible(partido),
   ).length;
   const misPartidos = partidos.filter(participantes);
+  const invitaciones = partidos.filter((partido) => partido.invitado);
   const jugados = misPartidos.filter((partido) => partido.estado === 'Finalizado').length;
 
   const textoBusqueda = busqueda.trim().toLowerCase();
   const filtrados = partidos
     .filter((partido) => {
       if (vista === 'mis') return participantes(partido);
+      if (vista === 'invitaciones') return partido.invitado;
       if (vista === 'descubrir') {
         return (
           (partido.estado === 'Necesitamos jugadores' || partido.estado === 'Armado') &&
@@ -87,7 +87,7 @@ export function Workspace({
     .filter((partido) => {
       if (!textoBusqueda) return true;
       return [
-        DEPORTES[partido.deporte].nombre,
+        nombreDeporte(catalogo, partido.deporte),
         partido.zona.barrio,
         partido.estado,
         partido.horario,
@@ -119,10 +119,13 @@ export function Workspace({
             <button type="button" className="btn btn--fantasma btn--chico" onClick={onReiniciar}>
               <IconRefresh width={16} height={16} /> Reiniciar demo
             </button>
+            <ThemeToggle tema={tema} onAlternar={onAlternarTema} />
             <div className="usuario-chip">
-              <span className="avatar">{iniciales(usuario)}</span>
+              <span className="avatar">{inicialesDe(usuario)}</span>
               <span className="usuario-chip__texto">
-                <strong>{nombreCompleto(usuario)}</strong>
+                <strong>
+                  {usuario.nombre} {usuario.apellido}
+                </strong>
                 <small>
                   {etiquetaNivel(usuario.nivel)} · {capitalizar(usuario.zona.barrio)}
                 </small>
@@ -203,6 +206,9 @@ export function Workspace({
               onClick={() => setVista(opcion)}
             >
               {ETIQUETAS_VISTA[opcion]}
+              {opcion === 'invitaciones' && invitaciones.length > 0 && (
+                <span className="tab__badge">{invitaciones.length}</span>
+              )}
             </button>
           ))}
         </nav>
@@ -222,11 +228,11 @@ export function Workspace({
           <select
             className="selector"
             value={deporteFiltro}
-            onChange={(evento) => setDeporteFiltro(evento.target.value as 'todos' | DeporteId)}
+            onChange={(evento) => setDeporteFiltro(evento.target.value)}
             aria-label="Filtrar por deporte"
           >
             <option value="todos">Todos los deportes</option>
-            {DEPORTES_LISTA.map((item) => (
+            {catalogo.deportes.map((item) => (
               <option key={item.id} value={item.id}>
                 {item.nombre}
               </option>
@@ -240,7 +246,7 @@ export function Workspace({
             aria-label="Filtrar por barrio"
           >
             <option value="todos">Todos los barrios</option>
-            {BARRIOS.map((item) => (
+            {catalogo.barrios.map((item) => (
               <option key={item.barrio} value={item.barrio}>
                 {capitalizar(item.barrio)}
               </option>
@@ -266,6 +272,7 @@ export function Workspace({
                 key={partido.id}
                 partido={partido}
                 usuario={usuario}
+                catalogo={catalogo}
                 onAbrir={() => setPartidoAbierto(partido.id)}
                 onUnirse={() => onUnirse(partido)}
               />
@@ -278,6 +285,7 @@ export function Workspace({
         <MatchDetailModal
           partido={partidoSeleccionado}
           usuario={usuario}
+          catalogo={catalogo}
           onCerrar={() => setPartidoAbierto(null)}
           onUnirse={() => onUnirse(partidoSeleccionado)}
           onAccion={(accion) => onAccion(partidoSeleccionado, accion)}
@@ -288,13 +296,17 @@ export function Workspace({
       {creando && (
         <CreateMatchModal
           usuario={usuario}
+          catalogo={catalogo}
           onCerrar={() => setCreando(false)}
-          onCrear={(nuevo) => {
-            onCrear(nuevo);
-            setCreando(false);
-          }}
+          onCrear={onCrear}
         />
       )}
     </div>
   );
+}
+
+function inicialesDe(usuario: Usuario): string {
+  const nombre = usuario.nombre.charAt(0);
+  const apellido = usuario.apellido.charAt(0);
+  return `${nombre}${apellido}`.toUpperCase();
 }

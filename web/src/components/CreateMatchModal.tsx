@@ -1,12 +1,13 @@
 import { useState, type FormEvent } from 'react';
-import { BARRIOS, DEPORTES_LISTA, NIVELES, capitalizar, etiquetaNivel, fechaISOEnDias } from '../data';
-import type { DeporteId, Nivel, NuevoPartido, Usuario } from '../types';
+import { capitalizar, etiquetaNivel, fechaISOEnDias } from '../formato';
+import type { Catalogo, Nivel, NuevoPartido, Usuario } from '../types';
 import { Modal } from './Modal';
 
 interface Props {
   usuario: Usuario;
+  catalogo: Catalogo;
   onCerrar: () => void;
-  onCrear: (nuevo: NuevoPartido) => void;
+  onCrear: (nuevo: NuevoPartido) => Promise<boolean>;
 }
 
 interface Errores {
@@ -15,18 +16,23 @@ interface Errores {
   duracion?: string;
 }
 
-export function CreateMatchModal({ usuario, onCerrar, onCrear }: Props) {
-  const [deporte, setDeporte] = useState<DeporteId>(usuario.deporteFav);
+type Estrategia = NuevoPartido['estrategia'];
+
+export function CreateMatchModal({ usuario, catalogo, onCerrar, onCrear }: Props) {
+  const [deporte, setDeporte] = useState(usuario.deporteFav ?? catalogo.deportes[0]?.id ?? 'futbol');
   const [barrio, setBarrio] = useState(usuario.zona.barrio);
   const [fecha, setFecha] = useState(fechaISOEnDias(1));
   const [horario, setHorario] = useState('19:00');
   const [duracion, setDuracion] = useState('90');
   const [nivel, setNivel] = useState<Nivel>(usuario.nivel);
+  const [estrategia, setEstrategia] = useState<Estrategia>('cercania');
+  const [partidosPrevios, setPartidosPrevios] = useState('1');
   const [errores, setErrores] = useState<Errores>({});
+  const [enviando, setEnviando] = useState(false);
 
   const hoy = fechaISOEnDias(0);
 
-  const enviar = (evento: FormEvent<HTMLFormElement>) => {
+  const enviar = async (evento: FormEvent<HTMLFormElement>) => {
     evento.preventDefault();
     const nuevosErrores: Errores = {};
 
@@ -48,17 +54,22 @@ export function CreateMatchModal({ usuario, onCerrar, onCrear }: Props) {
     setErrores(nuevosErrores);
     if (Object.keys(nuevosErrores).length > 0) return;
 
-    const zona = BARRIOS.find((item) => item.barrio === barrio);
-    if (!zona) return;
-
-    onCrear({
+    setEnviando(true);
+    const creado = await onCrear({
       deporte,
-      zona,
+      barrio,
       fecha,
       horario,
       duracionMinutos: minutos,
       nivelRequerido: nivel,
+      estrategia,
+      partidosPrevios: estrategia === 'historial' ? Number(partidosPrevios) || 0 : undefined,
     });
+    setEnviando(false);
+
+    if (creado) {
+      onCerrar();
+    }
   };
 
   return (
@@ -71,10 +82,10 @@ export function CreateMatchModal({ usuario, onCerrar, onCrear }: Props) {
         <label className="campo">
           <span>Deporte</span>
           <span className="campo__control">
-            <select value={deporte} onChange={(evento) => setDeporte(evento.target.value as DeporteId)}>
-              {DEPORTES_LISTA.map((item) => (
+            <select value={deporte} onChange={(evento) => setDeporte(evento.target.value)}>
+              {catalogo.deportes.map((item) => (
                 <option key={item.id} value={item.id}>
-                  {item.emoji} {item.nombre} · {item.jugadores} jugadores
+                  {item.nombre} · {item.jugadores} jugadores
                 </option>
               ))}
             </select>
@@ -85,7 +96,7 @@ export function CreateMatchModal({ usuario, onCerrar, onCrear }: Props) {
           <span>Barrio</span>
           <span className="campo__control">
             <select value={barrio} onChange={(evento) => setBarrio(evento.target.value)}>
-              {BARRIOS.map((item) => (
+              {catalogo.barrios.map((item) => (
                 <option key={item.barrio} value={item.barrio}>
                   {capitalizar(item.barrio)} ({capitalizar(item.ciudad)})
                 </option>
@@ -97,7 +108,12 @@ export function CreateMatchModal({ usuario, onCerrar, onCrear }: Props) {
         <label className="campo">
           <span>Fecha</span>
           <span className="campo__control">
-            <input type="date" value={fecha} min={hoy} onChange={(evento) => setFecha(evento.target.value)} />
+            <input
+              type="date"
+              value={fecha}
+              min={hoy}
+              onChange={(evento) => setFecha(evento.target.value)}
+            />
           </span>
           {errores.fecha && <small className="campo__error">{errores.fecha}</small>}
         </label>
@@ -133,7 +149,7 @@ export function CreateMatchModal({ usuario, onCerrar, onCrear }: Props) {
           <span>Nivel requerido</span>
           <span className="campo__control">
             <select value={nivel} onChange={(evento) => setNivel(evento.target.value as Nivel)}>
-              {NIVELES.map((item) => (
+              {catalogo.niveles.map((item) => (
                 <option key={item} value={item}>
                   {etiquetaNivel(item)}
                 </option>
@@ -142,12 +158,41 @@ export function CreateMatchModal({ usuario, onCerrar, onCrear }: Props) {
           </span>
         </label>
 
+        <label className="campo">
+          <span>Estrategia de emparejamiento</span>
+          <span className="campo__control">
+            <select
+              value={estrategia}
+              onChange={(evento) => setEstrategia(evento.target.value as Estrategia)}
+            >
+              <option value="cercania">Por cercanía</option>
+              <option value="nivel">Por nivel de habilidad</option>
+              <option value="historial">Por historial de partidos</option>
+            </select>
+          </span>
+        </label>
+
+        {estrategia === 'historial' && (
+          <label className="campo">
+            <span>Partidos previos requeridos</span>
+            <span className="campo__control">
+              <input
+                type="number"
+                value={partidosPrevios}
+                min={0}
+                max={50}
+                onChange={(evento) => setPartidosPrevios(evento.target.value)}
+              />
+            </span>
+          </label>
+        )}
+
         <div className="form-acciones">
           <button type="button" className="btn btn--fantasma" onClick={onCerrar}>
             Cancelar
           </button>
-          <button type="submit" className="btn btn--primario">
-            Crear partido
+          <button type="submit" className="btn btn--primario" disabled={enviando}>
+            {enviando ? 'Creando…' : 'Crear partido'}
           </button>
         </div>
       </form>

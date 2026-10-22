@@ -1,48 +1,47 @@
 import {
-  DEPORTES,
   capitalizar,
+  emojiDeporte,
   etiquetaNivel,
   formatearFecha,
-  iniciales,
-  nombreCompleto,
-  obtenerUsuario,
+  lugarDisponible,
+  nombreDeporte,
   slugEstado,
-} from '../data';
-import type { Partido, Usuario } from '../types';
+} from '../formato';
+import type { Catalogo, Partido, Usuario } from '../types';
 import { IconCalendar, IconClock, IconPin } from './icons';
 
 interface Props {
   partido: Partido;
   usuario: Usuario;
+  catalogo: Catalogo;
   onAbrir: () => void;
   onUnirse: () => void;
 }
 
 const CANTIDAD_AVATARES = 4;
 
-export function MatchCard({ partido, usuario, onAbrir, onUnirse }: Props) {
-  const deporte = DEPORTES[partido.deporte];
+export function MatchCard({ partido, usuario, catalogo, onAbrir, onUnirse }: Props) {
   const ocupados = partido.jugadores.length;
-  const porcentaje = Math.min(100, Math.round((ocupados / deporte.jugadores) * 100));
-  const yaUnido = partido.jugadores.includes(usuario.id);
+  const porcentaje = Math.min(100, Math.round((ocupados / partido.jugadoresRequeridos) * 100));
+  const yaUnido = partido.jugadores.some((jugador) => jugador.id === usuario.id);
   const puedeUnirse =
-    partido.estado === 'Necesitamos jugadores' && !yaUnido && ocupados < deporte.jugadores;
-  const creador = obtenerUsuario(partido.creadorId);
-  const avatares = partido.jugadores
-    .slice(0, CANTIDAD_AVATARES)
-    .map((id) => obtenerUsuario(id))
-    .filter((jugador): jugador is Usuario => Boolean(jugador));
+    partido.estado === 'Necesitamos jugadores' && !yaUnido && lugarDisponible(partido);
+  const avatares = partido.jugadores.slice(0, CANTIDAD_AVATARES);
 
   return (
     <article className={`partido partido--${partido.deporte}`}>
       <header className="partido__cabecera">
-        <span className={`deporte-icono deporte-icono--${partido.deporte}`}>{deporte.emoji}</span>
+        <span className={`deporte-icono deporte-icono--${partido.deporte}`}>
+          {emojiDeporte(partido.deporte)}
+        </span>
         <div className="partido__titulo">
-          <h3>{deporte.nombre}</h3>
+          <h3>{nombreDeporte(catalogo, partido.deporte)}</h3>
           <p>Nivel {etiquetaNivel(partido.nivelRequerido)}</p>
         </div>
         <span className={`estado estado--${slugEstado(partido.estado)}`}>{partido.estado}</span>
       </header>
+
+      {partido.invitado && <p className="etiqueta-invitacion">Te invitaron a este partido</p>}
 
       <ul className="partido__meta">
         <li>
@@ -62,8 +61,8 @@ export function MatchCard({ partido, usuario, onAbrir, onUnirse }: Props) {
       <div className="partido__jugadores">
         <div className="avatares">
           {avatares.map((jugador) => (
-            <span key={jugador.id} className="avatar" title={nombreCompleto(jugador)}>
-              {iniciales(jugador)}
+            <span key={jugador.id} className="avatar" title={jugador.nombreCompleto}>
+              {jugador.iniciales}
             </span>
           ))}
           {ocupados > CANTIDAD_AVATARES && (
@@ -71,7 +70,7 @@ export function MatchCard({ partido, usuario, onAbrir, onUnirse }: Props) {
           )}
         </div>
         <span className="conteo">
-          <strong>{ocupados}</strong>/{deporte.jugadores}
+          <strong>{ocupados}</strong>/{partido.jugadoresRequeridos}
         </span>
       </div>
 
@@ -80,7 +79,9 @@ export function MatchCard({ partido, usuario, onAbrir, onUnirse }: Props) {
       </div>
 
       <footer className="partido__pie">
-        <span className="creador">{creador ? `Creado por ${creador.nombre}` : 'Sin creador'}</span>
+        <span className="creador">
+          {partido.creadorNombre ? `Creado por ${partido.creadorNombre}` : 'Sin creador'}
+        </span>
         <div className="partido__acciones">
           <button type="button" className="btn btn--fantasma btn--chico" onClick={onAbrir}>
             Ver detalle

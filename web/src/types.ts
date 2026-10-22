@@ -8,24 +8,25 @@ export type Estado =
   | 'Finalizado'
   | 'Cancelado';
 
-export type DeporteId = 'futbol' | 'basquet' | 'tenis' | 'voley';
-
-export interface Deporte {
-  id: DeporteId;
-  nombre: string;
-  emoji: string;
-  jugadores: number;
-}
-
 export interface Barrio {
   ciudad: string;
   barrio: string;
 }
 
-export interface Comentario {
+export interface Deporte {
   id: string;
-  autor: string;
-  contenido: string;
+  nombre: string;
+  jugadores: number;
+}
+
+export interface Catalogo {
+  deportes: Deporte[];
+  barrios: Barrio[];
+  niveles: Nivel[];
+}
+
+export interface Notificacion {
+  mensaje: string;
   fecha: string;
 }
 
@@ -34,33 +35,68 @@ export interface Usuario {
   nombre: string;
   apellido: string;
   correo: string;
-  contrasenia: string;
-  deporteFav: DeporteId;
+  deporteFav: string | null;
   nivel: Nivel;
   zona: Barrio;
+  notificaciones: Notificacion[];
+}
+
+export interface Jugador {
+  id: string;
+  nombreCompleto: string;
+  iniciales: string;
+  nivel: Nivel;
+  creador: boolean;
+}
+
+export interface Comentario {
+  autor: string;
+  contenido: string;
+  fecha: string;
 }
 
 export interface Partido {
   id: string;
-  deporte: DeporteId;
+  deporte: string;
   duracionMinutos: number;
   zona: Barrio;
   fecha: string;
   horario: string;
   estado: Estado;
-  creadorId: string;
-  jugadores: string[];
-  nivelRequerido: Nivel;
+  creadorId: string | null;
+  creadorNombre: string | null;
+  jugadores: Jugador[];
+  jugadoresRequeridos: number;
+  nivelRequerido: Nivel | null;
+  estrategia: string | null;
   comentarios: Comentario[];
+  invitado: boolean;
 }
 
 export type AccionPartido = 'unirse' | 'confirmar' | 'comenzar' | 'finalizar' | 'cancelar';
 
+export interface ResultadoAccion {
+  partido: Partido;
+  mensaje: string;
+}
+
 export interface NuevoPartido {
-  deporte: DeporteId;
-  zona: Barrio;
+  deporte: string;
+  barrio: string;
   fecha: string;
   horario: string;
   duracionMinutos: number;
   nivelRequerido: Nivel;
+  estrategia: 'cercania' | 'nivel' | 'historial';
+  partidosPrevios?: number;
+}
+
+export interface RegistroDatos {
+  nombre: string;
+  apellido: string;
+  correo: string;
+  contrasenia: string;
+  deporteFav: string;
+  nivel: Nivel;
+  barrio: string;
 }
