@@ -2,7 +2,6 @@ C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\controller\BarrioCont
 C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\controller\PartidoController.java
 C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\controller\UsuarioController.java
 C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\Main.java
-C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\ANAdapterCorreoJavaMail.java
 C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\ANAdapterFireBase.java
 C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\Barrio.java
 C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\Comentario.java
@@ -14,7 +13,6 @@ C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\DVoley.java
 C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\EmparejamientoPorCercania.java
 C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\EmparejamientoPorHistorial.java
 C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\EmparejamientoPorNivel.java
-C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\ENNotificadorCorreo.java
 C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\ENNotificadorFireBase.java
 C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\EPArmado.java
 C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\EPCancelado.java
@@ -23,7 +21,6 @@ C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\EPEnJuego.java
 C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\EPFinalizado.java
 C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\EPNecesitamosJugadores.java
 C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\Equipo.java
-C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\IAdapterNotificacionCorreo.java
 C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\IAdapterNotificacionFireBase.java
 C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\IEstadoPartido.java
 C:\Users\drope\uno-mas-visual\uno-mas-visual\src\main\java\model\IEstrategiaEmparejamiento.java

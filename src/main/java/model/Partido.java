@@ -85,28 +85,6 @@ public class Partido implements IObservable {
     public void cambiarEstadoPartido(IEstadoPartido nuevoEstado) {
         this.estado = nuevoEstado;
         notificar();
-        // Notificar a todos los participantes y al creador
-        ENNotificadorCorreo estr = new ENNotificadorCorreo();
-        estr.setAdapter(new ANAdapterCorreoJavaMail()); // con JavaMail real
-        Notificador notificador = new Notificador();
-        notificador.cambiarEstrategia(estr);
-        // Notificar a los jugadores
-        for (IParticipante jugador : jugadores) {
-            if (jugador instanceof Usuario usuario) {
-                Notificacion notif = new Notificacion();
-                notif.setDestinatario(usuario.getCorreo());
-                notif.setMensaje("El partido cambió a estado: " + nuevoEstado.nombre());
-                notificador.enviarNotificacion(notif);
-            }
-        }
-        // Notificar al creador si no está en la lista de jugadores
-        if (creador != null && jugadores.stream()
-                .noneMatch(j -> (j instanceof Usuario u) && u.getCorreo().equals(creador.getCorreo()))) {
-            Notificacion notif = new Notificacion();
-            notif.setDestinatario(creador.getCorreo());
-            notif.setMensaje("El partido cambió a estado: " + nuevoEstado.nombre());
-            notificador.enviarNotificacion(notif);
-        }
     }
 
     @Override

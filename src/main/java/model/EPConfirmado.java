@@ -22,7 +22,6 @@ public class EPConfirmado implements IEstadoPartido {
     @Override
     public void comenzar(Partido partido) {
         partido.cambiarEstadoPartido(new EPEnJuego());
-        // Eliminar el envío manual de correo aquí.
     }
 
 
